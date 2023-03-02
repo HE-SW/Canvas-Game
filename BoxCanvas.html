@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body onload="startGame()">
+    <script>
+      function startGame() {
+        myGameArea.start();
+      }
+
+      const FOLLOW_SPEED = 0.08;
+      const ROTATE_SPEED = 0.12;
+      const SPEED_REDUCE = 0.8;
+      const MAX_ANGLE = 30;
+      const FPS = 1000 / 60;
+      const WIDTH = 90;
+      const HEIGHT = 90;
+
+      let myGameArea = {
+        canvas: document.createElement('canvas'),
+        start: function () {
+          this.canvas.width = 1080;
+          this.canvas.height = 600;
+          this.canvas.style = 'background: #cdd7e5';
+          this.context = this.canvas.getContext('2d');
+          document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+          this.pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
+
+          this.mousePos = new Point();
+          this.curItem = null;
+
+          this.items = [];
+          this.total = 1;
+          for (let i = 0; i < this.total; i++) {
+            this.items[i] = new Dialog();
+          }
+          document.addEventListener('resize', this.resize.bind(this), false);
+          window.requestAnimationFrame(this.animate.bind(this));
+          document.addEventListener('pointerdown', this.onDown.bind(this), false);
+          document.addEventListener('pointermove', this.onMove.bind(this), false);
+          document.addEventListener('pointerup', this.onUp.bind(this), false);
+        },
+
+        resize() {
+          this.context.shadowOffsetX = 0;
+          this.context.shadowOffsetY = 3;
+          this.context.shadowBlur = 6;
+
+          this.context.lineWidth = 2;
+          for (let i = 0; i < this.items.length; i++) {
+            this.items[i].resize(this.canvas.width, this.canvas.height);
+          }
+        },
+
+        animate() {
+          window.requestAnimationFrame(this.animate.bind(this));
+          this.context.clearRect(0, 0, this.stageWidth, this.stageHeight);
+
+          for (let i = 0; i < this.items.length; i++) {
+            this.items[i].animate(this.context);
+          }
+        },
+
+        onDown(e) {
+          this.mousePos.x = e.clientX;
+          this.mousePos.y = e.clientY;
+
+          for (let i = this.items.length - 1; i >= 0; i--) {
+            const item = this.items[i].down(this.mousePos.clone());
+            if (item) {
+              this.curItem = item;
+              const index = this.items.indexOf(item);
+              this.items.push(this.item.splice(index, 1)[0]);
+              break;
+            }
+          }
+        },
+        onMove(e) {
+          this.mousePos.x = e.clientX;
+          this.mousePos.y = e.clientY;
+
+          for (let i = 0; i < this.items.length; i++) {
+            this.items[i].move(this.mousePos.clone());
+          }
+        },
+        onUp(e) {
+          this.curItem = null;
+          for (let i = 0; i < this.items.length; i++) {
+            this.items[i].up;
+          }
+        },
+      };
+
+      function Point(x, y) {
+        this.x = x || 0;
+        this.y = y || 0;
+
+        this.add = (point) => {
+          this.x += point.x;
+          this.y += point.y;
+          return this;
+        };
+
+        this.subtract = (point) => {
+          this.x -= point.x;
+          this.y -= point.y;
+          return this;
+        };
+        this.reduce = (value) => {
+          this.x *= value;
+          this.y *= value;
+          return this;
+        };
+        this.collide = (point, width, height) => {
+          if (this.x >= point.x && this.x <= point.x + width && this.y >= point.y && this.y <= point.y + height) {
+            return true;
+          } else {
+            return false;
+          }
+        };
+        this.clone = () => {
+          return new Point(this.x, this.y);
+        };
+      }
+
+      function Dialog() {
+        this.pos = new Point();
+        this.target = new Point();
+        this.prevPos = new Point();
+        this.downPos = new Point();
+        this.speedPos = new Point();
+        this.startPos = new Point();
+        this.mousePos = new Point();
+        this.centerPos = new Point();
+        this.origin = new Point();
+        this.rotation = 0;
+        this.sideValue = 0;
+        this.isDown = false;
+
+        this.resize = (stageWidth, stageHeight) => {
+          this.pos.x = Math.random() * (stageWidth - WIDTH);
+          this.pos.y = Math.random() * (stageHeight - HEIGHT);
+          this.target = this.pos.clone();
+          this.prevPos = this.pos.clone();
+        };
+
+        this.animate = (context) => {
+          const move = this.target.clone();
+
+          context.beginPath();
+          context.fillStyle = '#f4e55a';
+          context.fillRect(this.pos.x, this.pos.y, WIDTH, HEIGHT);
+        };
+
+        this.down = (point) => {
+          if (point.collide(this.pos, WIDTH, HEIGHT)) {
+            this.isDown = true;
+            this.startPos = this.pos.clone();
+            this.downPos = point.clone();
+            this.mousePos = point.clone().subtract(this.pos);
+            return this;
+          } else {
+            return null;
+          }
+        };
+        this.move = (point) => {
+          if (this.inDown) {
+            this.target = this.startPos.clone().add(point).subtract(this.downPos);
+          }
+        };
+        this.up = (point) => {
+          this.isDown = false;
+        };
+      }
+    </script>
+  </body>
+</html>
