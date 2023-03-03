@@ -12,14 +12,14 @@
         myGameArea.start();
       }
 
-      const FOLLOW_SPEED = 0.08;
+      const FOLLOW_SPEED = 0.5;
       const ROTATE_SPEED = 0.12;
-
+      const SPEED_REDUCE = 0.8;
       const MAX_ANGLE = 30;
       const FPS = 1000 / 60;
-      const WIDTH = 100;
-      const HEIGHT = 100;
-      const PI = Math.PI;
+      const WIDTH = 50;
+      const HEIGHT = 50;
+
       let myGameArea = {
         canvas: document.createElement('canvas'),
         start: function () {
@@ -28,12 +28,13 @@
           this.canvas.style = 'background: #cdd7e5';
           this.context = this.canvas.getContext('2d');
           document.body.insertBefore(this.canvas, document.body.childNodes[0]);
+          this.pixelRatio = window.devicePixelRatio > 1 ? 2 : 1;
 
           this.mousePos = new Point();
           this.curItem = null;
 
           this.items = [];
-          this.total = 5;
+          this.total = 1;
           for (let i = 0; i < this.total; i++) {
             this.items[i] = new Dialog();
           }
@@ -54,48 +55,22 @@
         },
 
         resize() {
+          this.context.shadowOffsetX = 0;
+          this.context.shadowOffsetY = 3;
+          this.context.shadowBlur = 6;
+          this.context.shadowColor = `rgba(0,0,0,0.1)`;
+          this.context.lineWidth = 2;
           for (let i = 0; i < this.items.length; i++) {
             this.items[i].resize(this.canvas.width, this.canvas.height);
           }
         },
 
         animate() {
-          this.context.shadowOffsetX = 0;
-          this.context.shadowOffsetY = 3;
-          this.context.shadowBlur = 6;
-          this.context.shadowColor = `rgba(0,0,0,0.5)`;
-          this.context.lineWidth = 2;
-
           window.requestAnimationFrame(this.animate.bind(this));
           this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
           for (let i = 0; i < this.items.length; i++) {
             this.items[i].animate(this.context);
-          }
-          if (this.curItem) {
-            this.context.fillStyle = '#ff4338';
-            this.context.strokeStyle = '#ff4338';
-            this.context.beginPath();
-            this.context.arc(this.mousePos.x, this.mousePos.y, 4, 0, PI * 2);
-            this.context.fill();
-
-            this.context.beginPath();
-            this.context.arc(
-              this.curItem.centerPos.x,
-              this.curItem.centerPos.y,
-              4,
-              0,
-              PI * 2
-            );
-            this.context.fill();
-
-            this.context.beginPath();
-            this.context.moveTo(this.mousePos.x, this.mousePos.y);
-            this.context.lineTo(
-              this.curItem.centerPos.x,
-              this.curItem.centerPos.y
-            );
-            this.context.stroke();
           }
         },
 
@@ -192,32 +167,9 @@
             .subtract(this.pos)
             .reduce(FOLLOW_SPEED);
           this.pos.add(move);
-
-          this.centerPos = this.pos.clone().add(this.mousePos);
-          this.swingDrag(context);
-
-          this.prevPos = this.pos.clone();
-        };
-
-        this.swingDrag = (context) => {
-          const dx = this.pos.x - this.prevPos.x;
-          const speedX = Math.abs(dx) / FPS;
-          const speed = Math.min(Math.max(speedX, 0), 1);
-
-          let rotation = (MAX_ANGLE / 1) * speed;
-          rotation = rotation * (dx > 0 ? 1 : -1) - this.sideValue;
-
-          this.rotation += (rotation - this.rotation) * ROTATE_SPEED;
-          const tmpPos = this.pos.clone().add(this.origin);
-          context.save();
-          context.translate(tmpPos.x, tmpPos.y);
-          context.rotate((this.rotation * PI) / 180);
-          context.beginPath();
-
           context.beginPath();
           context.fillStyle = '#f4e55a';
-          context.fillRect(-this.origin.x, -this.origin.y, WIDTH, HEIGHT);
-          context.restore();
+          context.fillRect(this.pos.x, this.pos.y, WIDTH, HEIGHT);
         };
 
         this.down = (point) => {
@@ -226,12 +178,6 @@
             this.startPos = this.pos.clone();
             this.downPos = point.clone();
             this.mousePos = point.clone().subtract(this.pos);
-
-            const xRatioValue = this.mousePos.x / WIDTH;
-            this.origin.x = WIDTH * xRatioValue;
-            this.origin.y = (HEIGHT * this.mousePos.y) / HEIGHT;
-
-            this.sideValue = xRatioValue - 0.5;
             return this;
           } else {
             return null;
